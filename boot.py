@@ -1,6 +1,6 @@
 import network
 import time
-import secret  # <-- hämta hemligheter härifrån
+import secret
 
 def wifi_connect(ssid, password, timeout=15):
     wlan = network.WLAN(network.STA_IF)
@@ -15,8 +15,7 @@ def wifi_connect(ssid, password, timeout=15):
     return wlan.ifconfig()
 
 try:
-    wifi_connect(secret.WIFI_SSID, secret.WIFI_PASSWORD)
+    ifconfig = wifi_connect(secret.WIFI_SSID, secret.WIFI_PASSWORD)
+    print("WiFi ansluten:", ifconfig)
 except Exception as e:
-    # logga eller ignorera — main.py kan försöka igen
-    pass
-    
+    print("WiFi-anslutning misslyckades:", e)
