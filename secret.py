@@ -7,4 +7,4 @@ GITHUB_TOKEN = "ghp_xxxDIN_TOKENxxx"
 USER = "dittgithubnamn"
 REPO = "dittrepo"
 BRANCH = "main"
-FILE_PATH = "main.py"   # filen vi vill hålla uppdaterad
+FILE_PATH = "app_main.py"   # filen vi vill hålla uppdaterad
