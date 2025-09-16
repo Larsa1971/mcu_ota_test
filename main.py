@@ -7,6 +7,8 @@ async def main():
 
     # Starta OTA-worker
     asyncio.create_task(ota.ota_worker())
+    
+    await asyncio.sleep(1)
 
     # Starta din riktiga applikation
     import app_main
