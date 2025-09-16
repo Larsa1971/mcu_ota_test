@@ -1,5 +1,6 @@
 import uasyncio as asyncio
 import ota
+import web_server
 
 import time
 print("main.py körs")
@@ -13,6 +14,9 @@ async def main():
     asyncio.create_task(ota.ota_worker())
     
     await asyncio.sleep(1)
+        # Starta webbserver efter OTA-check
+    web_server.start_web_server()
+
 
     # Starta din riktiga applikation
     import app_main
