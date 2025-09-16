@@ -55,30 +55,47 @@ async def ota_check():
             print("Ny version hittad → uppdaterar...")
 
             # Backup app_main.py → app_main_old.py
-            try:
-                if "app_main.py" in os.listdir():
-                    if "app_main_old.py" in os.listdir():
-                        os.remove("app_main_old.py")
-                    os.rename("app_main.py", "app_main_old.py")
-            except Exception as e:
-                print("Backup-fel:", e)
+#            try:
+#                if "app_main.py" in os.listdir():
+#                    if "app_main_old.py" in os.listdir():
+#                        os.remove("app_main_old.py")
+#                    os.rename("app_main.py", "app_main_old.py")
+#            except Exception as e:
+#                print("Backup-fel:", e)
 
             # Ladda ner ny app_main.py (din riktiga app)
             new_app = download_file_from_github("app_main.py")
-            with open("app_main.py", "wb") as f:
+            with open("app_main_new.py", "wb") as f:
                 f.write(new_app)
 
-            # Ladda ner ny version.py
-            with open("version.py", "wb") as f:
-                f.write(remote_version_py)
+            # (valfritt) testa syntax – rudimentärt test
+            try:
+                compile(new_app, "app_main_new.py", "exec")
+                print("Koden OK vid kompilering:")
 
-            print("✅ Uppdatering klar – startar om")
-            await asyncio.sleep(1)
-            machine.reset()
+                # Byt namn på nya filen
+                if "app_main_new.py" in os.listdir():
+                    if "app_main.py" in os.listdir():
+                        os.rename("app_main.py", "app_main_old.py")
+                        os.rename("app_main_new.py", "app_main.py")
+                        # Ladda ner ny version.py
+                        with open("version.py", "wb") as f:
+                            f.write(remote_version_py)
+                        print("✅ Uppdatering klar – startar om")
+                        await asyncio.sleep(1)
+                        machine.reset()
+
+            except Exception as e:
+                print("Kodfel vid kompilering:", e)
+                if "app_main_new.py" in os.listdir():
+                    os.remove("app_main_new.py")
+                return False
+
         else:
             print("Ingen ny version")
     except Exception as e:
         print("OTA error:", e)
+
 
 async def ota_worker():
     while True:
@@ -87,13 +104,15 @@ async def ota_worker():
 
 
 def rollback_if_broken():
-    if "app_main.py.old" in os.listdir() and "app_main.py" in os.listdir():
+    if "app_main_old.py" in os.listdir() and "app_main.py" in os.listdir():
         try:
             with open("app_main.py") as f:
                 compile(f.read(), "app_main.py", "exec")
+            print("app_main.py – OK")
         except Exception as e:
-            print("⚠️ Fel i app_main.py – gör rollback")
-            print("Kodfel vid kompilering:", e)
+            print("⚠️ Fel i app_main.py – gör rollback", e)
             os.remove("app_main.py")
             os.rename("app_main.py.old", "app_main.py")
-        machine.reset()    
+            await asyncio.sleep(1)
+            machine.reset()
+
