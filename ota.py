@@ -54,19 +54,14 @@ async def ota_check():
         if local_ver != remote_ver and remote_ver is not None:
             print("Ny version hittad → uppdaterar...")
 
-            # Backup main.py → main_old.py
+            # Backup app_main.py → app_main_old.py
             try:
-                if "main.py" in os.listdir():
-                    if "main_old.py" in os.listdir():
-                        os.remove("main_old.py")
-                    os.rename("main.py", "main_old.py")
+                if "app_main.py" in os.listdir():
+                    if "app_main_old.py" in os.listdir():
+                        os.remove("app_main_old.py")
+                    os.rename("app_main.py", "app_main_old.py")
             except Exception as e:
                 print("Backup-fel:", e)
-
-            # Ladda ner ny main.py (bootstrapper)
-            new_main = download_file_from_github("main.py")
-            with open("main.py", "wb") as f:
-                f.write(new_main)
 
             # Ladda ner ny app_main.py (din riktiga app)
             new_app = download_file_from_github("app_main.py")
@@ -90,18 +85,15 @@ async def ota_worker():
         await ota_check()
         await asyncio.sleep(CHECK_INTERVAL)
 
+
 def rollback_if_broken():
-    try:
-        import app_main as test_app
-        del test_app
-        return
-    except Exception as e:
-        print("⚠️ Ny app trasig, rullar tillbaka:", e)
+    if "app_main.py.old" in os.listdir() and "app_main.py" in os.listdir():
         try:
-            if "main_old.py" in os.listdir():
-                if "main.py" in os.listdir():
-                    os.remove("main.py")
-                os.rename("main_old.py", "main.py")
-        except Exception as e2:
-            print("Rollback misslyckades:", e2)
-        machine.reset()
+            with open("app_main.py") as f:
+                compile(f.read(), "app_main.py", "exec")
+        except Exception as e:
+            print("⚠️ Fel i app_main.py – gör rollback")
+            print("Kodfel vid kompilering:", e)
+            os.remove("app_main.py")
+            os.rename("app_main.py.old", "app_main.py")
+        machine.reset()    
