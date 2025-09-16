@@ -1,7 +1,7 @@
 import uasyncio as asyncio
 import machine, os, urequests, ubinascii, secret
 
-CHECK_INTERVAL = 60 * 30  # kolla var 30:e minut
+# CHECK_INTERVAL = 60 * 30  # kolla var 30:e minut
 
 # ============
 # GitHub helpers
@@ -100,7 +100,7 @@ async def ota_check():
 async def ota_worker():
     while True:
         await ota_check()
-        await asyncio.sleep(CHECK_INTERVAL)
+        await asyncio.sleep(secret.CHECK_INTERVAL)
 
 
 def rollback_if_broken():
