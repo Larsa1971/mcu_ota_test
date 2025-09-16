@@ -1,7 +1,7 @@
-import socket
+import uasyncio as asyncio
 import machine
-import time
 import network
+import time
 
 start_time = time.ticks_ms()
 
@@ -46,7 +46,6 @@ def get_status_html():
 </body>
 </html>
 """
-    # Bygg komplett HTTP-respons med header + body
     response = (
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
@@ -67,60 +66,62 @@ def get_simple_response(message="OK"):
     )
     return response
 
-def start_web_server(ota_callback=None):
-    addr = socket.getaddrinfo("0.0.0.0", 80)[0][-1]
-    s = socket.socket()
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # tillåter återanvändning av port
-    s.bind(addr)
-    s.listen(1)
-    print("Webbserver igång på http://{}".format(addr))
+async def handle_client(reader, writer, ota_callback=None):
+    try:
+        request_line = await reader.readline()
+        if not request_line:
+            await writer.aclose()
+            return
 
-    while True:
+        request = request_line.decode('utf-8').strip()
+        print("HTTP-request:", request)
+
+        # Läs och ignorerar övriga headers
+        while True:
+            header = await reader.readline()
+            if not header or header == b'\r\n':
+                break
+
+        if "GET /ota" in request:
+            response = get_simple_response("OTA startad...")
+            writer.write(response.encode('utf-8'))
+            await writer.drain()
+            await writer.aclose()
+            if ota_callback:
+                # Starta OTA efter en kort delay för att hinna skicka svar
+                asyncio.get_event_loop().call_later(0.1, ota_callback)
+
+        elif "GET /reboot" in request:
+            response = get_simple_response("Startar om enheten...")
+            writer.write(response.encode('utf-8'))
+            await writer.drain()
+            await writer.aclose()
+            # Starta om efter kort delay
+            def reboot_later():
+                machine.reset()
+            asyncio.get_event_loop().call_later(0.1, reboot_later)
+
+        else:
+            response = get_status_html()
+            writer.write(response.encode('utf-8'))
+            await writer.drain()
+            await writer.aclose()
+
+    except Exception as e:
+        print("Fel i hantering av klient:", e)
         try:
-            cl, addr = s.accept()
-            cl.settimeout(5)
-            print("Ny anslutning från", addr)
+            await writer.aclose()
+        except:
+            pass
 
-            try:
-                cl_file = cl.makefile("rwb", 0)
+import uasyncio as asyncio
 
-                # Läs första request-linjen
-                request_line = cl_file.readline()
-                if not request_line:
-                    cl.close()
-                    continue
+async def start_web_server(ota_callback=None, host='0.0.0.0', port=80):
+    print(f"Startar asynkron webbserver på {host}:{port}")
+    server = await asyncio.start_server(lambda r, w: handle_client(r, w, ota_callback), host, port)
+    
+    # Kör servern “för evigt” genom att låta en loop som sover hålla event-loopen aktiv
+    while True:
+        await asyncio.sleep(3600)  # sover 1 timme och loopar sedan
 
-                request = request_line.decode("utf-8").strip()
-                print("HTTP-request:", request)
-
-                # Läs och ignorera resten av headers för att tömma buffer (viktigt!)
-                while True:
-                    header_line = cl_file.readline()
-                    if not header_line or header_line == b'\r\n':
-                        break
-
-                if "GET /ota" in request:
-                    cl.sendall(get_simple_response("OTA startad...").encode('utf-8'))
-                    cl.close()
-                    if ota_callback:
-                        machine.Timer().init(mode=machine.Timer.ONE_SHOT, period=100, callback=lambda t: ota_callback())
-
-                elif "GET /reboot" in request:
-                    cl.sendall(get_simple_response("Startar om enheten...").encode('utf-8'))
-                    cl.close()
-                    machine.Timer().init(mode=machine.Timer.ONE_SHOT, period=100, callback=lambda t: machine.reset())
-
-                else:
-                    cl.sendall(get_status_html().encode('utf-8'))
-                    cl.close()
-
-            except Exception as e:
-                print("Klientfel:", e)
-                try:
-                    cl.close()
-                except:
-                    pass
-
-        except Exception as e:
-            print("Webbserver-fel:", e)
 
