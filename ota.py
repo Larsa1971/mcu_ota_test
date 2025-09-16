@@ -54,15 +54,6 @@ async def ota_check():
         if local_ver != remote_ver and remote_ver is not None:
             print("Ny version hittad → uppdaterar...")
 
-            # Backup app_main.py → app_main_old.py
-#            try:
-#                if "app_main.py" in os.listdir():
-#                    if "app_main_old.py" in os.listdir():
-#                        os.remove("app_main_old.py")
-#                    os.rename("app_main.py", "app_main_old.py")
-#            except Exception as e:
-#                print("Backup-fel:", e)
-
             # Ladda ner ny app_main.py (din riktiga app)
             new_app = download_file_from_github("app_main.py")
             with open("app_main_new.py", "wb") as f:
@@ -83,7 +74,12 @@ async def ota_check():
                             f.write(remote_version_py)
                         print("✅ Uppdatering klar – startar om")
                         await asyncio.sleep(1)
-                        machine.reset()
+#                        machine.reset()
+                        # Trigger watchdog reset som ofta är "hårdare"
+                        wdt = machine.WDT(timeout=500)
+                        while True:
+                            pass  # Låt WDT trigga omstart
+
 
             except Exception as e:
                 print("Kodfel vid kompilering:", e)
@@ -114,5 +110,9 @@ def rollback_if_broken():
             os.remove("app_main.py")
             os.rename("app_main.py.old", "app_main.py")
             await asyncio.sleep(1)
-            machine.reset()
+#            machine.reset()
+            # Trigger watchdog reset som ofta är "hårdare"
+            wdt = machine.WDT(timeout=500)
+            while True:
+                pass  # Låt WDT trigga omstart            
 
