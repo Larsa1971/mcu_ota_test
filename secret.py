@@ -8,3 +8,4 @@ USER = "dittgithubnamn"
 REPO = "dittrepo"
 BRANCH = "main"
 FILE_PATH = "app_main.py"   # filen vi vill hålla uppdaterad
+CHECK_INTERVAL = 120 # tiden i sekunder för verifiering om ny version kommit
