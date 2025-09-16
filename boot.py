@@ -29,7 +29,7 @@ try:
             print("Fel i app_main.py – gör rollback")
             os.remove("app_main.py")
             os.rename("app_main_old.py", "main.py")
-            await asyncio.sleep(1)
+            time.sleep(1)
             machine.reset()
     
 except Exception as e:
