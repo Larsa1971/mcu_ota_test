@@ -1,6 +1,10 @@
 import uasyncio as asyncio
 import ota
 
+import time
+print("main.py körs")
+time.sleep(1)
+
 async def main():
     # Kolla att koden fungerar, annars rollback
     ota.rollback_if_broken()
