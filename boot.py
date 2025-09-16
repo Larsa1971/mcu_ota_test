@@ -4,6 +4,9 @@ import secret
 import time
 import os
 
+print("boot.py körs")
+time.sleep(1)
+
 def wifi_connect(ssid, password, timeout=15):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -33,7 +36,11 @@ try:
             os.remove("app_main.py")
             os.rename("app_main_old.py", "app_main.py")
             time.sleep(1)
-            machine.reset()
+#            machine.reset()
+            # Trigger watchdog reset som ofta är "hårdare"
+            wdt = machine.WDT(timeout=500)
+            while True:
+                pass  # Låt WDT trigga omstart
     
 except Exception as e:
     print("WiFi-anslutning misslyckades:", e)
